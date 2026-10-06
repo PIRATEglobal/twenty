@@ -42,7 +42,7 @@ cleanup_build() {
   if ! swap_utility '
     set -eu
     if awk '\''$1 ~ /twenty-production-build[.]swap/ { found=1 } END { exit !found }'\'' /proc/swaps; then
-      swapoff /state/twenty-production-build.swap
+      /bin/busybox swapoff /state/twenty-production-build.swap
     fi
     rm -f /state/twenty-production-build.swap
   '; then
@@ -73,8 +73,8 @@ swap_utility '
   rm -f /state/twenty-production-build.swap
   fallocate -l 4G /state/twenty-production-build.swap
   chmod 600 /state/twenty-production-build.swap
-  mkswap /state/twenty-production-build.swap >/dev/null
-  swapon /state/twenty-production-build.swap
+  /bin/busybox mkswap /state/twenty-production-build.swap >/dev/null
+  /bin/busybox swapon /state/twenty-production-build.swap
 '
 
 # Coolify keeps runtime secrets out of the build-time environment file.
