@@ -13,10 +13,12 @@ import { isDefined } from 'twenty-shared/utils';
 
 import { buildActorMetadataFromAuthContext } from 'src/engine/core-modules/actor/utils/build-actor-metadata-from-auth-context.util';
 import { buildCreatedByFromApplication } from 'src/engine/core-modules/actor/utils/build-created-by-from-application.util';
+import { type FlatApiKey } from 'src/engine/core-modules/api-key/types/flat-api-key.type';
 import { ApplicationLookupService } from 'src/engine/core-modules/application/application-lookup/application-lookup.service';
 import { type FlatApplication } from 'src/engine/core-modules/application/types/flat-application.type';
 import { workspaceAuthContextStorage } from 'src/engine/core-modules/auth/storage/workspace-auth-context.storage';
 import { type WorkspaceAuthContext } from 'src/engine/core-modules/auth/types/workspace-auth-context.type';
+import { buildApiKeyAuthContext } from 'src/engine/core-modules/auth/utils/build-api-key-auth-context.util';
 import { type FlatWorkspace } from 'src/engine/core-modules/workspace/types/flat-workspace.type';
 import { AgentActorContextService } from 'src/engine/metadata-modules/ai/ai-agent-execution/services/agent-actor-context.service';
 import { AgentAsyncExecutorService } from 'src/engine/metadata-modules/ai/ai-agent-execution/services/agent-async-executor.service';
@@ -67,12 +69,14 @@ export class AgentRunService {
     requestUserWorkspaceId,
     requestWorkspaceMemberId,
     callerApplication,
+    callerApiKey,
     input,
   }: {
     workspace: FlatWorkspace;
     requestUserWorkspaceId: string | null;
     requestWorkspaceMemberId: string | null;
     callerApplication?: FlatApplication;
+    callerApiKey?: FlatApiKey;
     input: RunAgentServiceInput;
   }): Promise<RunAgentResult> {
     const messages = resolveRunAgentMessagesOrThrow({
@@ -136,11 +140,16 @@ export class AgentRunService {
       application,
     });
 
-    const authContext: WorkspaceAuthContext = runAsContext?.authContext ?? {
-      type: 'application',
-      workspace,
-      application,
-    };
+    const { authContext, actorContext } =
+      runAsContext ??
+      (await this.resolveCallerContext({
+        workspace,
+        application,
+        callerApplication,
+        callerApiKey,
+        requestUserWorkspaceId,
+        requestWorkspaceMemberId,
+      }));
 
     const actor: AgentConversationActor = isDefined(runAsContext)
       ? {
@@ -212,7 +221,7 @@ export class AgentRunService {
             messages: executionMessages,
             priorMessages,
             baseSystemPrompt: AGENT_RUN_BASE_SYSTEM_PROMPT,
-            actorContext: runAsContext?.actorContext,
+            actorContext,
             authContext,
             workspaceId: workspace.id,
             userWorkspaceId:
@@ -382,6 +391,56 @@ export class AgentRunService {
         AiExceptionCode.INVALID_AGENT_INPUT,
       );
     }
+  }
+
+  private async resolveCallerContext({
+    workspace,
+    application,
+    callerApplication,
+    callerApiKey,
+    requestUserWorkspaceId,
+    requestWorkspaceMemberId,
+  }: {
+    workspace: FlatWorkspace;
+    application: FlatApplication;
+    callerApplication?: FlatApplication;
+    callerApiKey?: FlatApiKey;
+    requestUserWorkspaceId: string | null;
+    requestWorkspaceMemberId: string | null;
+  }): Promise<{
+    authContext: WorkspaceAuthContext;
+    actorContext?: ActorMetadata;
+  }> {
+    if (isDefined(requestWorkspaceMemberId)) {
+      const { authContext, actorContext } =
+        await this.agentActorContextService.buildRunAsWorkspaceMemberContext({
+          workspaceMemberId: requestWorkspaceMemberId,
+          workspaceId: workspace.id,
+          viaApplication: application,
+        });
+
+      return { authContext, actorContext };
+    }
+
+    if (isDefined(callerApplication) && !isDefined(requestUserWorkspaceId)) {
+      return {
+        authContext: { type: 'application', workspace, application },
+      };
+    }
+
+    if (isDefined(callerApiKey)) {
+      return {
+        authContext: buildApiKeyAuthContext({
+          workspace,
+          apiKey: callerApiKey,
+        }),
+      };
+    }
+
+    throw new AiException(
+      'Running an agent requires a workspace member, an API key or the agent application',
+      AiExceptionCode.RUN_AGENT_NOT_ALLOWED,
+    );
   }
 
   private async resolveRunAsContext({

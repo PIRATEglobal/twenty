@@ -71,15 +71,17 @@ const run = (
   {
     isCalledByApplication = true,
     requestUserWorkspaceId = null,
+    requestWorkspaceMemberId = null,
   }: {
     isCalledByApplication?: boolean;
     requestUserWorkspaceId?: string | null;
+    requestWorkspaceMemberId?: string | null;
   } = {},
 ) =>
   service.run({
     workspace: WORKSPACE,
     requestUserWorkspaceId,
-    requestWorkspaceMemberId: null,
+    requestWorkspaceMemberId,
     callerApplication: isCalledByApplication
       ? (APPLICATION as never)
       : undefined,
@@ -249,6 +251,7 @@ describe('AgentRunService', () => {
       {
         isCalledByApplication: false,
         requestUserWorkspaceId: 'caller-user-workspace-id',
+        requestWorkspaceMemberId: 'caller-workspace-member-id',
       },
     );
 
