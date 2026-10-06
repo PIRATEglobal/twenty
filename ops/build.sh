@@ -19,13 +19,21 @@ docker buildx create \
   --driver-opt memory=4608m,memory-swap=6g,cpu-quota=150000,cpu-period=100000,default-load=true,cgroup-parent=pirate-build.slice \
   --buildkitd-config ops/buildkitd.toml
 
+# Buildx applies cgroup-parent only with cgroupfs; this host uses systemd.
+docker create --name buildx_buildkit_twenty-production0 \
+  --privileged --init --restart=no \
+  --cgroup-parent=pirate-build.slice \
+  --memory=4608m --memory-swap=6g --cpus=1.5 --pids-limit=512 \
+  --mount type=volume,source=buildx_buildkit_twenty-production0_state,target=/var/lib/buildkit \
+  moby/buildkit:buildx-stable-1 --config=/etc/buildkitd.toml >/dev/null
+docker cp ops/buildkitd.toml buildx_buildkit_twenty-production0:/etc/buildkitd.toml
+trap 'docker buildx stop twenty-production >/dev/null' EXIT
 docker buildx inspect --bootstrap twenty-production >/dev/null
 builder_parent=$(docker inspect --format '{{.HostConfig.CgroupParent}}' buildx_buildkit_twenty-production0)
 if [ "$builder_parent" != pirate-build.slice ]; then
   echo 'Twenty builder must run outside the shared production container resource group.' >&2
   exit 1
 fi
-trap 'docker buildx stop twenty-production >/dev/null' EXIT
 docker update --memory=4608m --memory-swap=6g --pids-limit=512 \
   buildx_buildkit_twenty-production0 >/dev/null
 
