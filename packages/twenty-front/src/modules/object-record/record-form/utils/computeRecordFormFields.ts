@@ -1,9 +1,13 @@
 import { type FieldMetadataItem } from '@/object-metadata/types/FieldMetadataItem';
 import { getFieldPermissions } from '@/object-metadata/utils/getFieldPermissions';
+import { type RecordFormField } from '@/object-record/record-form/types/RecordFormField';
 import { type PageLayoutTab } from '@/page-layout/types/PageLayoutTab';
 import { type PageLayoutWidget } from '@/page-layout/types/PageLayoutWidget';
 import { type RestrictedFieldsPermissions } from 'twenty-shared/types';
-import { isDefined } from 'twenty-shared/utils';
+import {
+  isDefined,
+  isFieldMetadataEligibleForRecordForm,
+} from 'twenty-shared/utils';
 import {
   PageLayoutTabLayoutMode,
   WidgetConfigurationType,
@@ -12,7 +16,7 @@ import {
 
 type RecordFormWidget = Pick<
   PageLayoutWidget,
-  'isActive' | 'type' | 'position' | 'configuration'
+  'id' | 'isActive' | 'type' | 'position' | 'configuration'
 >;
 
 type RecordFormTab = Pick<PageLayoutTab, 'isActive' | 'position'> & {
@@ -20,6 +24,11 @@ type RecordFormTab = Pick<PageLayoutTab, 'isActive' | 'position'> & {
 };
 
 type RecordFormLayout = { tabs: RecordFormTab[] };
+
+type RecordFormFieldMetadataItem = Pick<
+  FieldMetadataItem,
+  'id' | 'name' | 'type' | 'isActive' | 'isSystem' | 'isUIEditable' | 'settings'
+>;
 
 const getVerticalListIndex = (pageLayoutWidget: RecordFormWidget): number => {
   const { position } = pageLayoutWidget;
@@ -42,8 +51,26 @@ const getFormFieldMetadataId = (
     : undefined;
 };
 
-export const computeRecordFormFieldMetadataItems = <
-  TFieldMetadataItem extends Pick<FieldMetadataItem, 'id'>,
+const isFieldMetadataItemEligibleForRecordForm = (
+  fieldMetadataItem: RecordFormFieldMetadataItem,
+): boolean => {
+  const { settings } = fieldMetadataItem;
+
+  return isFieldMetadataEligibleForRecordForm({
+    fieldName: fieldMetadataItem.name,
+    fieldType: fieldMetadataItem.type,
+    isActive: fieldMetadataItem.isActive === true,
+    isSystem: fieldMetadataItem.isSystem === true,
+    isUIEditable: fieldMetadataItem.isUIEditable !== false,
+    relationType:
+      isDefined(settings) && 'relationType' in settings
+        ? settings.relationType
+        : undefined,
+  });
+};
+
+export const computeRecordFormFields = <
+  TFieldMetadataItem extends RecordFormFieldMetadataItem,
 >({
   recordFormPageLayout,
   fieldMetadataItems,
@@ -52,11 +79,12 @@ export const computeRecordFormFieldMetadataItems = <
   recordFormPageLayout: RecordFormLayout;
   fieldMetadataItems: TFieldMetadataItem[];
   restrictedFields: RestrictedFieldsPermissions;
-}): TFieldMetadataItem[] => {
+}): RecordFormField<TFieldMetadataItem>[] => {
   const fieldMetadataItemById = new Map(
     fieldMetadataItems
       .filter(
         (fieldMetadataItem) =>
+          isFieldMetadataItemEligibleForRecordForm(fieldMetadataItem) &&
           getFieldPermissions({
             objectPermissions: { restrictedFields },
             fieldMetadataId: fieldMetadataItem.id,
@@ -71,21 +99,27 @@ export const computeRecordFormFieldMetadataItems = <
     .flatMap((pageLayoutTab) =>
       [...(pageLayoutTab.widgets ?? [])]
         .filter(
-          (pageLayoutWidget) =>
-            pageLayoutWidget.isActive &&
-            pageLayoutWidget.type === WidgetType.FORM_FIELD,
+          (pageLayoutWidget) => pageLayoutWidget.type === WidgetType.FORM_FIELD,
         )
         .sort(
           (widgetA, widgetB) =>
             getVerticalListIndex(widgetA) - getVerticalListIndex(widgetB),
         ),
     )
-    .map((pageLayoutWidget) => {
+    .flatMap((pageLayoutWidget) => {
       const fieldMetadataId = getFormFieldMetadataId(pageLayoutWidget);
-
-      return isDefined(fieldMetadataId)
+      const fieldMetadataItem = isDefined(fieldMetadataId)
         ? fieldMetadataItemById.get(fieldMetadataId)
         : undefined;
-    })
-    .filter(isDefined);
+
+      return isDefined(fieldMetadataItem)
+        ? [
+            {
+              widgetId: pageLayoutWidget.id,
+              fieldMetadataItem,
+              isVisible: pageLayoutWidget.isActive,
+            },
+          ]
+        : [];
+    });
 };
