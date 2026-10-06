@@ -5,7 +5,7 @@ import { JSX_RUNTIME_SHARED_HELPERS_SOURCE } from '@/cli/utilities/build/common/
 
 type EventHandler = (event: Event) => void;
 type EventSource = 'jsx' | 'clone';
-type EventRef = ((element: EventTarget | null) => (() => void) | undefined) & {
+type EventRef = ((element: EventTarget | null) => unknown) & {
   _eventSource?: EventSource;
 };
 type ClonedElement = {
@@ -287,235 +287,6 @@ describe('jsx runtime shared helpers', () => {
     expect(handleClonedKeyDown).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    { runtime: 'React', readsElementRefFromVnode: false },
-    { runtime: 'Preact', readsElementRefFromVnode: true },
-  ])(
-    'should keep the element handlers and replace only its user ref when a $runtime clone overrides the ref',
-    ({ readsElementRefFromVnode }) => {
-      const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-      const element = new EventTarget();
-      const handleElementClick = vi.fn();
-      const elementUserRef = vi.fn();
-      const cloneUserRef = vi.fn();
-      const elementRef = makeEventRef(
-        { onClick: handleElementClick },
-        elementUserRef,
-        'jsx',
-      );
-
-      withCloneEventRef(
-        readsElementRefFromVnode
-          ? { type: 'html-button', props: {}, ref: elementRef }
-          : { type: 'html-button', props: { ref: elementRef } },
-        { ref: cloneUserRef },
-        readsElementRefFromVnode,
-      ).ref(element);
-      element.dispatchEvent(new Event('click'));
-
-      expect(handleElementClick).toHaveBeenCalledTimes(1);
-      expect(cloneUserRef.mock.calls).toEqual([[element]]);
-      expect(elementUserRef).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each([
-    { runtime: 'React', readsElementRefFromVnode: false },
-    { runtime: 'Preact', readsElementRefFromVnode: true },
-  ])(
-    'should keep the element handlers and drop its user ref when a $runtime clone clears the ref',
-    ({ readsElementRefFromVnode }) => {
-      const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-      const element = new EventTarget();
-      const handleElementClick = vi.fn();
-      const elementUserRef = vi.fn();
-      const elementRef = makeEventRef(
-        { onClick: handleElementClick },
-        elementUserRef,
-        'jsx',
-      );
-
-      withCloneEventRef(
-        readsElementRefFromVnode
-          ? { type: 'html-button', props: {}, ref: elementRef }
-          : { type: 'html-button', props: { ref: elementRef } },
-        { ref: null },
-        readsElementRefFromVnode,
-      ).ref(element);
-      element.dispatchEvent(new Event('click'));
-
-      expect(handleElementClick).toHaveBeenCalledTimes(1);
-      expect(elementUserRef).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each([
-    { runtime: 'React', readsElementRefFromVnode: false, clearedValue: null },
-    { runtime: 'Preact', readsElementRefFromVnode: true, clearedValue: null },
-    {
-      runtime: 'React',
-      readsElementRefFromVnode: false,
-      clearedValue: undefined,
-    },
-    {
-      runtime: 'Preact',
-      readsElementRefFromVnode: true,
-      clearedValue: undefined,
-    },
-  ])(
-    'should drop an element handler that a $runtime clone overriding the ref sets to $clearedValue',
-    ({ readsElementRefFromVnode, clearedValue }) => {
-      const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-      const element = new EventTarget();
-      const handleElementClick = vi.fn();
-      const handleElementKeyDown = vi.fn();
-      const cloneUserRef = vi.fn();
-      const elementRef = makeEventRef(
-        { onClick: handleElementClick, onKeyDown: handleElementKeyDown },
-        vi.fn(),
-        'jsx',
-      );
-
-      withCloneEventRef(
-        readsElementRefFromVnode
-          ? { type: 'html-button', props: {}, ref: elementRef }
-          : { type: 'html-button', props: { ref: elementRef } },
-        { ref: cloneUserRef, onClick: clearedValue },
-        readsElementRefFromVnode,
-      ).ref(element);
-      element.dispatchEvent(new Event('click'));
-      element.dispatchEvent(new Event('keydown'));
-
-      expect(handleElementClick).not.toHaveBeenCalled();
-      expect(handleElementKeyDown).toHaveBeenCalledTimes(1);
-      expect(cloneUserRef.mock.calls).toEqual([[element]]);
-    },
-  );
-
-  it('should drop an element handler that an outer clone overriding the ref clears', () => {
-    const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-    const element = new EventTarget();
-    const calls: string[] = [];
-    const innerConfig = withCloneEventRef(
-      {
-        type: 'html-button',
-        props: {
-          ref: makeEventRef(
-            { onClick: () => calls.push('element click') },
-            vi.fn(),
-            'jsx',
-          ),
-        },
-      },
-      { onKeyDown: () => calls.push('inner clone keydown') },
-      false,
-    );
-
-    withCloneEventRef(
-      { type: 'html-button', props: { ref: innerConfig.ref } },
-      { ref: () => calls.push('outer clone ref'), onClick: null },
-      false,
-    ).ref(element);
-    element.dispatchEvent(new Event('click'));
-    element.dispatchEvent(new Event('keydown'));
-
-    expect(calls).toEqual(['outer clone ref', 'inner clone keydown']);
-  });
-
-  it('should keep the handlers of an inner clone when an outer clone overrides the ref', () => {
-    const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-    const element = new EventTarget();
-    const calls: string[] = [];
-    const innerConfig = withCloneEventRef(
-      {
-        type: 'html-button',
-        props: {
-          ref: makeEventRef(
-            { onClick: () => calls.push('element click') },
-            () => calls.push('element ref'),
-            'jsx',
-          ),
-        },
-      },
-      { onKeyDown: () => calls.push('inner clone keydown') },
-      false,
-    );
-
-    withCloneEventRef(
-      { type: 'html-button', props: { ref: innerConfig.ref } },
-      { ref: () => calls.push('outer clone ref') },
-      false,
-    ).ref(element);
-    element.dispatchEvent(new Event('click'));
-    element.dispatchEvent(new Event('keydown'));
-
-    expect(calls).toEqual([
-      'outer clone ref',
-      'element click',
-      'inner clone keydown',
-    ]);
-  });
-
-  it.each([
-    {
-      runtime: 'React',
-      readsElementRefFromVnode: false,
-      cloneRefDescription: 'the same ref',
-      cloneRef: vi.fn(),
-    },
-    {
-      runtime: 'Preact',
-      readsElementRefFromVnode: true,
-      cloneRefDescription: 'the same ref',
-      cloneRef: vi.fn(),
-    },
-    {
-      runtime: 'React',
-      readsElementRefFromVnode: false,
-      cloneRefDescription: 'null',
-      cloneRef: null,
-    },
-    {
-      runtime: 'Preact',
-      readsElementRefFromVnode: true,
-      cloneRefDescription: 'null',
-      cloneRef: null,
-    },
-  ])(
-    'should reuse one ref when $runtime clones of an element with handlers override its ref with $cloneRefDescription',
-    ({ readsElementRefFromVnode, cloneRef }) => {
-      const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-      const elementRef = makeEventRef({ onClick: vi.fn() }, vi.fn(), 'jsx');
-      const element = readsElementRefFromVnode
-        ? { type: 'html-button', props: {}, ref: elementRef }
-        : { type: 'html-button', props: { ref: elementRef } };
-
-      expect(
-        withCloneEventRef(element, { ref: cloneRef }, readsElementRefFromVnode)
-          .ref,
-      ).toBe(
-        withCloneEventRef(
-          element,
-          { ref: cloneRef, 'data-render-count': 1 },
-          readsElementRefFromVnode,
-        ).ref,
-      );
-    },
-  );
-
-  it('should reuse the element ref when a clone neither adds handlers nor overrides the ref', () => {
-    const { makeEventRef, withCloneEventRef } = loadSharedHelpers();
-    const elementRef = makeEventRef({ onClick: vi.fn() }, vi.fn(), 'jsx');
-
-    expect(
-      withCloneEventRef(
-        { type: 'html-button', props: { ref: elementRef } },
-        { 'aria-label': 'Cloned', ref: undefined },
-        false,
-      ).ref,
-    ).toBe(elementRef);
-  });
-
   it('should merge the handlers of nested clones, the outer clone winning per prop', () => {
     const { withCloneEventRef } = loadSharedHelpers();
     const element = new EventTarget();
@@ -544,7 +315,7 @@ describe('jsx runtime shared helpers', () => {
   describe.each([
     { runtimeName: 'React', readsElementRefFromVnode: false },
     { runtimeName: 'Preact', readsElementRefFromVnode: true },
-  ])('nested clones in $runtimeName', ({ readsElementRefFromVnode }) => {
+  ])('clones in $runtimeName', ({ readsElementRefFromVnode }) => {
     const toClonedElement = (elementRef: unknown): ClonedElement =>
       readsElementRefFromVnode
         ? { type: 'html-button', props: {}, ref: elementRef }
@@ -901,5 +672,120 @@ describe('jsx runtime shared helpers', () => {
         expect(calls).toEqual(['middle', 'inner keydown', 'outer focus']);
       },
     );
+
+    it.each([{ clearedValue: null }, { clearedValue: undefined }])(
+      'should keep only the element handlers that a clone overriding the ref does not set to $clearedValue',
+      ({ clearedValue }) => {
+        const sharedHelpers = loadSharedHelpers();
+        const element = new EventTarget();
+        const calls: string[] = [];
+
+        const jsxRef = sharedHelpers.makeEventRef(
+          {
+            onClick: recordCall(calls, 'jsx click'),
+            onKeyDown: recordCall(calls, 'jsx keydown'),
+          },
+          recordCall(calls, 'jsx ref'),
+          'jsx',
+        );
+        cloneElementRef(sharedHelpers, jsxRef, {
+          ref: recordCall(calls, 'clone ref'),
+          onClick: clearedValue,
+        })(element);
+        dispatchSyntheticLikeEvents(element, ['click', 'keydown']);
+
+        expect(calls).toEqual(['clone ref', 'jsx keydown']);
+      },
+    );
+
+    it('should keep the element handlers and drop its user ref when a clone clears the ref', () => {
+      const sharedHelpers = loadSharedHelpers();
+      const element = new EventTarget();
+      const calls: string[] = [];
+
+      const jsxRef = sharedHelpers.makeEventRef(
+        { onClick: recordCall(calls, 'jsx click') },
+        recordCall(calls, 'jsx ref'),
+        'jsx',
+      );
+      cloneElementRef(sharedHelpers, jsxRef, { ref: null })(element);
+      dispatchSyntheticLikeEvents(element, ['click']);
+
+      expect(calls).toEqual(['jsx click']);
+    });
+
+    it.each([
+      {
+        outerCloneDescription: 'sets no handler',
+        outerCloneEventProps: {},
+        expectedCalls: ['outer ref', 'jsx click', 'inner keydown'],
+      },
+      {
+        outerCloneDescription: 'clears the element handler',
+        outerCloneEventProps: { onClick: null },
+        expectedCalls: ['outer ref', 'inner keydown'],
+      },
+    ])(
+      'should keep the element and inner clone handlers when an outer clone overriding the ref $outerCloneDescription',
+      ({ outerCloneEventProps, expectedCalls }) => {
+        const sharedHelpers = loadSharedHelpers();
+        const element = new EventTarget();
+        const calls: string[] = [];
+
+        const jsxRef = sharedHelpers.makeEventRef(
+          { onClick: recordCall(calls, 'jsx click') },
+          recordCall(calls, 'jsx ref'),
+          'jsx',
+        );
+        const innerCloneRef = cloneElementRef(sharedHelpers, jsxRef, {
+          onKeyDown: recordCall(calls, 'inner keydown'),
+        });
+        cloneElementRef(sharedHelpers, innerCloneRef, {
+          ref: recordCall(calls, 'outer ref'),
+          ...outerCloneEventProps,
+        })(element);
+        dispatchSyntheticLikeEvents(element, ['click', 'keydown']);
+
+        expect(calls).toEqual(expectedCalls);
+      },
+    );
+
+    it.each([
+      { cloneRefDescription: 'the same ref', cloneRef: vi.fn() },
+      { cloneRefDescription: 'null', cloneRef: null },
+    ])(
+      'should reuse one ref when clones of an element with handlers override its ref with $cloneRefDescription',
+      ({ cloneRef }) => {
+        const sharedHelpers = loadSharedHelpers();
+        const jsxRef = sharedHelpers.makeEventRef(
+          { onClick: vi.fn() },
+          vi.fn(),
+          'jsx',
+        );
+
+        expect(cloneElementRef(sharedHelpers, jsxRef, { ref: cloneRef })).toBe(
+          cloneElementRef(sharedHelpers, jsxRef, {
+            ref: cloneRef,
+            'data-render-count': 1,
+          }),
+        );
+      },
+    );
+
+    it('should reuse the element ref when a clone neither adds handlers nor overrides the ref', () => {
+      const sharedHelpers = loadSharedHelpers();
+      const jsxRef = sharedHelpers.makeEventRef(
+        { onClick: vi.fn() },
+        vi.fn(),
+        'jsx',
+      );
+
+      expect(
+        cloneElementRef(sharedHelpers, jsxRef, {
+          'aria-label': 'Cloned',
+          ref: undefined,
+        }),
+      ).toBe(jsxRef);
+    });
   });
 });
