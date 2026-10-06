@@ -39,6 +39,8 @@ RUN yarn workspaces focus twenty twenty-server twenty-emails twenty-shared twent
 
 FROM server-deps AS twenty-server-build
 
+ENV NX_DAEMON=false NX_PARALLEL=1 NX_NATIVE_COMMAND_RUNNER=false
+
 COPY ./packages/twenty-emails /app/packages/twenty-emails
 COPY ./packages/twenty-shared /app/packages/twenty-shared
 COPY ./packages/twenty-client-sdk /app/packages/twenty-client-sdk
@@ -60,6 +62,8 @@ RUN yarn workspaces focus --production twenty-emails twenty-shared twenty-client
 
 
 FROM front-deps AS twenty-front-build
+
+ENV NX_DAEMON=false NX_PARALLEL=1 NX_NATIVE_COMMAND_RUNNER=false
 
 COPY ./packages/twenty-front /app/packages/twenty-front
 COPY ./packages/twenty-front-component-renderer /app/packages/twenty-front-component-renderer
