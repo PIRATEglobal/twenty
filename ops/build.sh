@@ -1,20 +1,23 @@
 #!/bin/sh
 set -eu
 
+# Coolify preserves Buildx definitions between helper containers.
+if docker buildx inspect twenty-production >/dev/null 2>&1; then
+  docker buildx rm --keep-state twenty-production >/dev/null
+fi
+
 available_kib=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
 if [ "$available_kib" -lt 5242880 ]; then
   echo 'Twenty build needs at least 5 GiB available host memory; retry when capacity is available.' >&2
   exit 1
 fi
 
-# Reuse a bounded builder so compilation cannot consume the whole CRM host.
-if ! docker buildx inspect twenty-production >/dev/null 2>&1; then
-  docker buildx create \
-    --name twenty-production \
-    --driver docker-container \
-    --driver-opt memory=4608m,memory-swap=6g,cpu-quota=150000,cpu-period=100000,default-load=true,cgroup-parent=pirate-build.slice \
-    --buildkitd-config ops/buildkitd.toml
-fi
+# Keep the cache volume while recreating the bounded, isolated builder.
+docker buildx create \
+  --name twenty-production \
+  --driver docker-container \
+  --driver-opt memory=4608m,memory-swap=6g,cpu-quota=150000,cpu-period=100000,default-load=true,cgroup-parent=pirate-build.slice \
+  --buildkitd-config ops/buildkitd.toml
 
 docker buildx inspect --bootstrap twenty-production >/dev/null
 builder_parent=$(docker inspect --format '{{.HostConfig.CgroupParent}}' buildx_buildkit_twenty-production0)
