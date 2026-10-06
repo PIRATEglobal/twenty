@@ -13,6 +13,9 @@ Coolify, with its include-source-commit-in-build setting enabled.
 The BuildKit builder uses one build step at a time and is limited to 4.5 GiB RAM,
 6 GiB total RAM/swap, and 1.5 CPUs. Its persistent cache speeds subsequent
 builds. Build completion precedes replacing the running application.
+The builder runs in `pirate-build.slice`, outside the shared production
+container resource group, with a 512-process limit. Builds require at least
+5 GiB available host memory and stop the builder on completion to release RAM.
 Nx runs one task at a time without its daemon. After translation compilation
 has built the required packages, the final frontend bundle runs directly with
 Vite and a 4 GiB JavaScript heap limit.
