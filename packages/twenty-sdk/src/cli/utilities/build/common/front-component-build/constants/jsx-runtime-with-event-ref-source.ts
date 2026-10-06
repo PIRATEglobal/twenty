@@ -50,19 +50,43 @@ function omitEventProps(events, omittedEvents) {
   return remainingEvents;
 }
 
-function doCloneEventsOverrideAnyEventProp(events, cloneEvents) {
+function doOverridingEventPropsOverrideAnyEventProp(
+  events,
+  overridingEventProps,
+) {
   for (const eventPropName in events) {
-    if (isEventPropOverriddenBy(eventPropName, cloneEvents)) {
+    if (isEventPropOverriddenBy(eventPropName, overridingEventProps)) {
       return true;
     }
   }
   return false;
 }
 
-function makeJsxEventRefNotOverriddenByCloneEvents({
+function findClearedEventPropsOf(config) {
+  let clearedEventProps = null;
+  for (const propName in config) {
+    const isClearedEventProp =
+      EVENT_PROP_NAME_PATTERN.test(propName) && config[propName] == null;
+    if (isClearedEventProp) {
+      clearedEventProps = clearedEventProps || {};
+      clearedEventProps[propName] = config[propName];
+    }
+  }
+  return clearedEventProps;
+}
+
+function mergeClearedEventProps(events, clearedEventProps) {
+  if (clearedEventProps === null) {
+    return events;
+  }
+
+  return Object.assign({}, events, clearedEventProps);
+}
+
+function makeJsxEventRefNotOverriddenByClone({
   elementRef,
   userRef,
-  cloneEvents,
+  overridingEventProps,
 }) {
   const jsxEventRef = findJsxEventRefOf(elementRef);
   if (jsxEventRef === null) {
@@ -70,12 +94,14 @@ function makeJsxEventRefNotOverriddenByCloneEvents({
   }
 
   const jsxEvents = jsxEventRef._eventProps;
-  if (!doCloneEventsOverrideAnyEventProp(jsxEvents, cloneEvents)) {
+  if (
+    !doOverridingEventPropsOverrideAnyEventProp(jsxEvents, overridingEventProps)
+  ) {
     return replaceInnermostUserRef(jsxEventRef, userRef);
   }
 
   return createEventRef(
-    omitEventProps(jsxEvents, cloneEvents),
+    omitEventProps(jsxEvents, overridingEventProps),
     userRef,
     'jsx',
   );
@@ -86,14 +112,18 @@ function makeCloneEventRefOfNonCloneElementRef({
   configRef,
   overridesElementRef,
   cloneEvents,
+  clearedEventProps,
 }) {
   const replacesElementUserRef =
     overridesElementRef && configRef !== elementRef;
   const cloneUserRef = replacesElementUserRef
-    ? makeJsxEventRefNotOverriddenByCloneEvents({
+    ? makeJsxEventRefNotOverriddenByClone({
         elementRef,
         userRef: configRef,
-        cloneEvents,
+        overridingEventProps: mergeClearedEventProps(
+          cloneEvents,
+          clearedEventProps,
+        ),
       })
     : elementRef;
   const canReuseCloneUserRef = !cloneEvents && isEventRef(cloneUserRef);
@@ -109,6 +139,7 @@ function makeCloneEventRef({
   configRef,
   overridesElementRef,
   cloneEvents,
+  clearedEventProps,
 }) {
   if (!isCloneEventRef(elementRef)) {
     return makeCloneEventRefOfNonCloneElementRef({
@@ -116,6 +147,7 @@ function makeCloneEventRef({
       configRef,
       overridesElementRef,
       cloneEvents,
+      clearedEventProps,
     });
   }
 
@@ -145,10 +177,13 @@ function makeCloneEventRef({
     );
   }
 
-  const cloneUserRef = makeJsxEventRefNotOverriddenByCloneEvents({
+  const cloneUserRef = makeJsxEventRefNotOverriddenByClone({
     elementRef,
     userRef: configRef,
-    cloneEvents: outerWinningCloneEvents,
+    overridingEventProps: mergeClearedEventProps(
+      outerWinningCloneEvents,
+      clearedEventProps,
+    ),
   });
   const chainedCloneEvents = chainCloneEvents(innerCloneEvents, cloneEvents);
   if (chainedCloneEvents === null) {
@@ -171,6 +206,7 @@ export function withCloneEventRef(element, config, readsElementRefFromVnode) {
     configRef: config == null ? undefined : config.ref,
     overridesElementRef: doesCloneConfigOverrideRef(config),
     cloneEvents,
+    clearedEventProps: findClearedEventPropsOf(config),
   });
   return cleanConfig;
 }
