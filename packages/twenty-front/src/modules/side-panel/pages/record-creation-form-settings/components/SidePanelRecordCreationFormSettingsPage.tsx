@@ -7,10 +7,14 @@ import { isFieldTypeSupportedInSettings } from '@/settings/data-model/utils/isFi
 import { SidePanelGroup } from '@/side-panel/components/SidePanelGroup';
 import { useSidePanelHistory } from '@/side-panel/hooks/useSidePanelHistory';
 import { recordCreationFormSettingsObjectMetadataIdComponentState } from '@/side-panel/pages/record-creation-form-settings/states/recordCreationFormSettingsObjectMetadataIdComponentState';
+import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
+import { sidePanelNavigationStackState } from '@/side-panel/states/sidePanelNavigationStackState';
 import { SidePanelFooter } from '@/ui/layout/side-panel/components/SidePanelFooter';
+import { useAvailableComponentInstanceIdOrThrow } from '@/ui/utilities/state/component-state/hooks/useAvailableComponentInstanceIdOrThrow';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
+import { useStore } from 'jotai';
 import { useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 import { LightIconButton } from 'twenty-ui/components/input';
@@ -62,6 +66,10 @@ const SidePanelRecordCreationFormSettings = ({
   });
   const { recordFormFields } = useRecordFormFields({ objectMetadataItem });
   const { goBackFromSidePanel } = useSidePanelHistory();
+  const store = useStore();
+  const sidePanelPageId = useAvailableComponentInstanceIdOrThrow(
+    SidePanelPageComponentInstanceContext,
+  );
   const { updatePageLayoutWidgetsIsActive } =
     useUpdatePageLayoutWidgetsIsActive();
 
@@ -104,7 +112,11 @@ const SidePanelRecordCreationFormSettings = ({
 
     setIsSaving(false);
 
-    if (status === 'successful') {
+    const isStillCurrentSidePanelPage =
+      store.get(sidePanelNavigationStackState.atom).at(-1)?.pageId ===
+      sidePanelPageId;
+
+    if (status === 'successful' && isStillCurrentSidePanelPage) {
       goBackFromSidePanel();
     }
   };

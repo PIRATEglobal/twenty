@@ -1,6 +1,6 @@
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider as JotaiProvider } from 'jotai';
 import { type ReactNode } from 'react';
@@ -10,10 +10,13 @@ import { metadataStoreState } from '@/metadata-store/states/metadataStoreState';
 import { SidePanelRecordCreationFormSettingsPage } from '@/side-panel/pages/record-creation-form-settings/components/SidePanelRecordCreationFormSettingsPage';
 import { recordCreationFormSettingsObjectMetadataIdComponentState } from '@/side-panel/pages/record-creation-form-settings/states/recordCreationFormSettingsObjectMetadataIdComponentState';
 import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
+import { sidePanelNavigationStackState } from '@/side-panel/states/sidePanelNavigationStackState';
 import {
   jotaiStore,
   resetJotaiStore,
 } from '@/ui/utilities/state/jotai/jotaiStore';
+import { SidePanelPages } from 'twenty-shared/types';
+import { IconPlus } from 'twenty-ui/icon';
 import {
   FieldMetadataType,
   PageLayoutTabLayoutMode,
@@ -23,6 +26,7 @@ import {
 } from '~/generated-metadata/graphql';
 
 const PAGE_ID = 'record-creation-form-settings-page';
+const CREATION_FORM_PAGE_ID = 'record-creation-form-page';
 const OBJECT_METADATA_ID = 'company-object';
 const PAGE_LAYOUT_ID = 'company-record-form';
 const PAGE_LAYOUT_TAB_ID = 'company-record-form-fields';
@@ -51,7 +55,11 @@ const COMPANY_OBJECT = {
 };
 
 const updatePageLayoutWidgetsIsActive = jest.fn();
-const goBackFromSidePanel = jest.fn();
+const goBackFromSidePanel = jest.fn(() =>
+  jotaiStore.set(sidePanelNavigationStackState.atom, (navigationStack) =>
+    navigationStack.slice(0, -1),
+  ),
+);
 
 jest.mock('@/object-metadata/hooks/useObjectMetadataItemById', () => ({
   useObjectMetadataItemById: () => ({ objectMetadataItem: COMPANY_OBJECT }),
@@ -156,6 +164,20 @@ describe('SidePanelRecordCreationFormSettingsPage', () => {
       status: 'successful',
     });
     seedRecordFormPageLayout();
+    jotaiStore.set(sidePanelNavigationStackState.atom, [
+      {
+        page: SidePanelPages.RecordCreationForm,
+        pageId: CREATION_FORM_PAGE_ID,
+        pageTitle: 'Create Company',
+        pageIcon: IconPlus,
+      },
+      {
+        page: SidePanelPages.RecordCreationFormSettings,
+        pageId: PAGE_ID,
+        pageTitle: 'Create Company',
+        pageIcon: IconPlus,
+      },
+    ]);
     jotaiStore.set(
       recordCreationFormSettingsObjectMetadataIdComponentState.atomFamily({
         instanceId: PAGE_ID,
@@ -202,6 +224,34 @@ describe('SidePanelRecordCreationFormSettingsPage', () => {
 
     expect(updatePageLayoutWidgetsIsActive).not.toHaveBeenCalled();
     expect(goBackFromSidePanel).toHaveBeenCalled();
+  });
+
+  it('does not leave the creation form when cancel is clicked while saving', async () => {
+    const user = userEvent.setup();
+    let resolveSave: (value: { status: 'successful' }) => void = () => {};
+
+    updatePageLayoutWidgetsIsActive.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Hide Domain' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await act(async () => {
+      resolveSave({ status: 'successful' });
+    });
+
+    expect(goBackFromSidePanel).toHaveBeenCalledTimes(1);
+    expect(
+      jotaiStore
+        .get(sidePanelNavigationStackState.atom)
+        .map((navigationStackItem) => navigationStackItem.pageId),
+    ).toEqual([CREATION_FORM_PAGE_ID]);
   });
 
   it('stays on the page when saving fails', async () => {
