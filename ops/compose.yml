@@ -12,7 +12,11 @@ services:
     expose:
       - '3000'
     volumes:
-      - twenty-server-local-data:/app/packages/twenty-server/.local-storage
+      - type: bind
+        source: /var/lib/docker/volumes/jgrm1k1qwpl6my1kat59f8ot_twenty-server-local-data/_data
+        target: /app/packages/twenty-server/.local-storage
+        bind:
+          create_host_path: false
     networks:
       - twenty-data
     environment: &runtime-environment
@@ -51,7 +55,11 @@ services:
     restart: unless-stopped
     command: ['node', 'dist/queue-worker/queue-worker']
     volumes:
-      - twenty-server-local-data:/app/packages/twenty-server/.local-storage
+      - type: bind
+        source: /var/lib/docker/volumes/jgrm1k1qwpl6my1kat59f8ot_twenty-server-local-data/_data
+        target: /app/packages/twenty-server/.local-storage
+        bind:
+          create_host_path: false
     networks:
       - twenty-data
     environment:
@@ -65,10 +73,6 @@ services:
     memswap_limit: 1536M
     mem_reservation: 1024M
     cpus: '0.150'
-volumes:
-  twenty-server-local-data:
-    external: true
-    name: jgrm1k1qwpl6my1kat59f8ot_twenty-server-local-data
 networks:
   twenty-data:
     external: true

@@ -20,7 +20,9 @@ Coolify, through its Deploy button or its GitHub push integration.
 
 The existing Coolify service `jgrm1k1qwpl6my1kat59f8ot` owns PostgreSQL and
 Redis, including the existing scheduled database backups. The Git application
-joins that service's network and mounts its existing external uploads volume.
+joins that service's network and binds the data directory of its existing
+uploads volume. Coolify's Compose parser renames named volume references even
+when marked external, so the explicit bind preserves the existing uploads.
 Do not delete that service, its network, or its volumes.
 
 Database migrations are disabled for this same-version cutover. Before an
