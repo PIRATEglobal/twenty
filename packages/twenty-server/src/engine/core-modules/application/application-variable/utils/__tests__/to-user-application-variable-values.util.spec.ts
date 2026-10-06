@@ -32,16 +32,19 @@ const USER_FLAT_APPLICATION_VARIABLES = [
   }),
 ];
 
-const USER_VALUES = [
-  {
-    applicationVariableId: 'record-my-meetings-id',
-    value: 'enc:on' as EncryptedString,
+const USER_WORKSPACE_ID = 'user-workspace-id';
+
+const USER_APPLICATION_VARIABLE_VALUE_MAPS = {
+  byApplicationVariableId: {
+    'record-my-meetings-id': {
+      [USER_WORKSPACE_ID]: 'enc:on' as EncryptedString,
+      'other-user-workspace-id': 'enc:off' as EncryptedString,
+    },
+    'personal-api-key-id': {
+      [USER_WORKSPACE_ID]: 'enc:key' as EncryptedString,
+    },
   },
-  {
-    applicationVariableId: 'personal-api-key-id',
-    value: 'enc:key' as EncryptedString,
-  },
-];
+};
 
 const getDisplayValue = ({
   value,
@@ -55,7 +58,8 @@ describe('toUserApplicationVariableValues', () => {
   it('should use the member value, else the default, else an empty string', () => {
     const values = toUserApplicationVariableValues({
       userFlatApplicationVariables: USER_FLAT_APPLICATION_VARIABLES,
-      userValues: USER_VALUES,
+      userApplicationVariableValueMaps: USER_APPLICATION_VARIABLE_VALUE_MAPS,
+      userWorkspaceId: USER_WORKSPACE_ID,
       shouldMaskSecret: false,
       getDisplayValue,
     });
@@ -68,10 +72,28 @@ describe('toUserApplicationVariableValues', () => {
     ]);
   });
 
+  it('should give the defaults when nobody is behind the run', () => {
+    const values = toUserApplicationVariableValues({
+      userFlatApplicationVariables: USER_FLAT_APPLICATION_VARIABLES,
+      userApplicationVariableValueMaps: USER_APPLICATION_VARIABLE_VALUE_MAPS,
+      userWorkspaceId: undefined,
+      shouldMaskSecret: false,
+      getDisplayValue,
+    });
+
+    expect(values.map(({ key, value }) => [key, value])).toEqual([
+      ['RECORD_MY_MEETINGS', 'off'],
+      ['LANGUAGE', 'en'],
+      ['NICKNAME', ''],
+      ['PERSONAL_API_KEY', ''],
+    ]);
+  });
+
   it('should mask secrets only when asked to', () => {
     const values = toUserApplicationVariableValues({
       userFlatApplicationVariables: USER_FLAT_APPLICATION_VARIABLES,
-      userValues: USER_VALUES,
+      userApplicationVariableValueMaps: USER_APPLICATION_VARIABLE_VALUE_MAPS,
+      userWorkspaceId: USER_WORKSPACE_ID,
       shouldMaskSecret: true,
       getDisplayValue,
     });
