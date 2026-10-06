@@ -5370,7 +5370,6 @@ export type Query = {
   metadataTranslations: Array<MetadataTranslation>;
   minimalMetadata: MinimalMetadata;
   mostlyEmptyFieldMetadataIds: Array<Scalars['UUID']['output']>;
-  myApplicationVariables: Array<ApplicationVariableUserValue>;
   myCalendarChannels: Array<CalendarChannel>;
   myConnectedAccounts: Array<ConnectedAccountPublicDto>;
   myMessageChannels: Array<MessageChannel>;
@@ -5806,11 +5805,6 @@ export type QueryMetadataTranslationsArgs = {
 
 export type QueryMostlyEmptyFieldMetadataIdsArgs = {
   objectMetadataId: Scalars['UUID']['input'];
-};
-
-
-export type QueryMyApplicationVariablesArgs = {
-  applicationUniversalIdentifier: Scalars['String']['input'];
 };
 
 
