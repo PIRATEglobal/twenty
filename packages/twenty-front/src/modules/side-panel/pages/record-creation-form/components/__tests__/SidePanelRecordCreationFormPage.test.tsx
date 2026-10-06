@@ -69,6 +69,8 @@ const NICKNAME_RULE: ValidationRule = {
 };
 
 const settleRecordCreationDraft = jest.fn();
+const openRecordCreationFormSettingsInSidePanel = jest.fn();
+const mockHasPermissionFlag = jest.fn();
 let mockValidationRules: ValidationRule[] = [];
 
 jest.mock('@/object-metadata/hooks/useObjectMetadataItemById', () => ({
@@ -97,6 +99,19 @@ jest.mock(
 jest.mock('@/validation-rules/hooks/useValidationRules', () => ({
   useValidationRules: () => ({ validationRules: mockValidationRules }),
 }));
+
+jest.mock('@/settings/roles/hooks/useHasPermissionFlag', () => ({
+  useHasPermissionFlag: () => mockHasPermissionFlag(),
+}));
+
+jest.mock(
+  '@/side-panel/hooks/useOpenRecordCreationFormSettingsInSidePanel',
+  () => ({
+    useOpenRecordCreationFormSettingsInSidePanel: () => ({
+      openRecordCreationFormSettingsInSidePanel,
+    }),
+  }),
+);
 
 jest.mock('@/ui/utilities/hotkey/hooks/useHotkeysOnFocusedElement', () => ({
   useHotkeysOnFocusedElement: () => undefined,
@@ -215,6 +230,7 @@ describe('SidePanelRecordCreationFormPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetJotaiStore();
+    mockHasPermissionFlag.mockReturnValue(true);
     mockValidationRules = [];
     seedRecordFormPageLayout();
     jotaiStore.set(
@@ -288,6 +304,28 @@ describe('SidePanelRecordCreationFormPage', () => {
 
     expect(screen.getByLabelText('Name')).toHaveValue('Apple');
     expect(screen.getByLabelText('Nickname')).toHaveValue('Big Apple');
+  });
+
+  it('opens the form configuration for members allowed to edit layouts', async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(openRecordCreationFormSettingsInSidePanel).toHaveBeenCalledWith(
+      COMPANY_OBJECT,
+    );
+  });
+
+  it('hides the edit button from members without the layouts permission', () => {
+    mockHasPermissionFlag.mockReturnValue(false);
+
+    renderPage();
+
+    expect(
+      screen.queryByRole('button', { name: 'Edit' }),
+    ).not.toBeInTheDocument();
   });
 
   it('reveals a hidden field targeted by a validation error and keeps the message', async () => {
