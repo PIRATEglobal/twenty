@@ -15,7 +15,7 @@ import { useAtomFamilySelectorValue } from '@/ui/utilities/state/jotai/hooks/use
 import { getCommandMenuDropdownIdFromCommandMenuId } from '@/command-menu-item/utils/getCommandMenuDropdownIdFromCommandMenuId';
 import { TextInput } from '@/ui/input/components/TextInput';
 import { isDropdownOpenComponentState } from '@/ui/layout/dropdown/states/isDropdownOpenComponentState';
-import { VisibilityHidden } from 'twenty-ui/primitives/accessibility';
+import { VisuallyHidden } from 'twenty-ui/primitives/accessibility';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useFormatAgentChatThreadDate } from '@/ai/hooks/useFormatAgentChatThreadDate';
 import { beautifyPastDateRelativeToNowShort } from '~/utils/date-utils';
@@ -278,7 +278,7 @@ export const AiChatThreadListItem = ({
             <StyledThreadTitle $isUnread={isShownAsUnread}>
               {displayTitle}
               {isShownAsUnread && (
-                <VisibilityHidden>{t`, unread`}</VisibilityHidden>
+                <VisuallyHidden>{t`, unread`}</VisuallyHidden>
               )}
             </StyledThreadTitle>
             <StyledActivityTime $isDropdownOpen={isDropdownOpen}>
