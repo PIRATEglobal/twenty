@@ -79,7 +79,8 @@ RUN npx nx run twenty-front:lingui:extract && \
 RUN if [ -d /app/packages/twenty-front/build ]; then \
       echo "Using pre-built frontend from host"; \
     else \
-      NODE_OPTIONS="--max-old-space-size=8192" npx nx build twenty-front; \
+      cd /app/packages/twenty-front && \
+      NODE_ENV=production NODE_OPTIONS="--max-old-space-size=4096" GOMAXPROCS=2 npx vite build; \
     fi
 
 

@@ -10,9 +10,12 @@ builds the frontend and backend into `pirate-twenty:<commit>`; both the web
 server and worker use that same local image. `SOURCE_COMMIT` is supplied by
 Coolify, with its include-source-commit-in-build setting enabled.
 
-The BuildKit builder uses one build step at a time and is limited to 3 GiB RAM,
+The BuildKit builder uses one build step at a time and is limited to 4.5 GiB RAM,
 6 GiB total RAM/swap, and 1.5 CPUs. Its persistent cache speeds subsequent
 builds. Build completion precedes replacing the running application.
+Nx runs one task at a time without its daemon. After translation compilation
+has built the required packages, the final frontend bundle runs directly with
+Vite and a 4 GiB JavaScript heap limit.
 
 Coolify holds runtime secrets, which are excluded from the build environment.
 GitHub Actions is disabled on this fork. Deployment is managed entirely by
