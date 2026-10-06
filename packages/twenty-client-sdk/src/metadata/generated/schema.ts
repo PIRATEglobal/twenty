@@ -1271,6 +1271,26 @@ export interface LogicFunctionExecutionResult {
 /** Status of the logic function execution */
 export type LogicFunctionExecutionStatus = 'IDLE' | 'SUCCESS' | 'ERROR'
 
+export interface ApplicationVariableUserValue {
+    key: Scalars['String']
+    value: Scalars['String']
+    description: Scalars['String']
+    label: Scalars['String']
+    isSecret: Scalars['Boolean']
+    isDeprecated: Scalars['Boolean']
+    isRequired: Scalars['Boolean']
+    type: Scalars['String']
+    options?: Scalars['JSON']
+    __typename: 'ApplicationVariableUserValue'
+}
+
+export interface WorkspaceMemberApplicationVariables {
+    userWorkspaceId: Scalars['UUID']
+    workspaceMemberId: Scalars['UUID']
+    variables: ApplicationVariableUserValue[]
+    __typename: 'WorkspaceMemberApplicationVariables'
+}
+
 export interface UserSession {
     id: Scalars['UUID']
     workspaceId?: Scalars['UUID']
@@ -3445,6 +3465,8 @@ export interface Query {
     commandMenuItem?: CommandMenuItem
     frontComponents: FrontComponent[]
     frontComponent?: FrontComponent
+    myApplicationVariables: ApplicationVariableUserValue[]
+    applicationVariableUserValues: WorkspaceMemberApplicationVariables[]
     objects: ObjectConnection
     object: Object
     objectRecordCounts: ObjectRecordCount[]
@@ -3629,6 +3651,7 @@ export interface Mutation {
     updateFrontComponent: FrontComponent
     deleteFrontComponent: FrontComponent
     updateOneApplicationVariable: Scalars['Boolean']
+    updateMyApplicationVariable: Scalars['Boolean']
     createOneObject: Object
     deleteOneObject: Object
     updateOneObject: Object
@@ -5136,6 +5159,28 @@ export interface LogicFunctionExecutionResultGenqlSelection{
     status?: boolean | number
     /** Execution error in JSON format */
     error?: boolean | number
+    __typename?: boolean | number
+    __scalar?: boolean | number
+}
+
+export interface ApplicationVariableUserValueGenqlSelection{
+    key?: boolean | number
+    value?: boolean | number
+    description?: boolean | number
+    label?: boolean | number
+    isSecret?: boolean | number
+    isDeprecated?: boolean | number
+    isRequired?: boolean | number
+    type?: boolean | number
+    options?: boolean | number
+    __typename?: boolean | number
+    __scalar?: boolean | number
+}
+
+export interface WorkspaceMemberApplicationVariablesGenqlSelection{
+    userWorkspaceId?: boolean | number
+    workspaceMemberId?: boolean | number
+    variables?: ApplicationVariableUserValueGenqlSelection
     __typename?: boolean | number
     __scalar?: boolean | number
 }
@@ -7416,6 +7461,8 @@ export interface QueryGenqlSelection{
     commandMenuItem?: (CommandMenuItemGenqlSelection & { __args: {id: Scalars['UUID']} })
     frontComponents?: FrontComponentGenqlSelection
     frontComponent?: (FrontComponentGenqlSelection & { __args: {id: Scalars['UUID']} })
+    myApplicationVariables?: (ApplicationVariableUserValueGenqlSelection & { __args: {applicationUniversalIdentifier: Scalars['String']} })
+    applicationVariableUserValues?: WorkspaceMemberApplicationVariablesGenqlSelection
     objects?: (ObjectConnectionGenqlSelection & { __args: {
     /** Limit or page results. */
     paging: CursorPaging, 
@@ -7651,6 +7698,7 @@ export interface MutationGenqlSelection{
     updateFrontComponent?: (FrontComponentGenqlSelection & { __args: {input: UpdateFrontComponentInput} })
     deleteFrontComponent?: (FrontComponentGenqlSelection & { __args: {id: Scalars['UUID']} })
     updateOneApplicationVariable?: { __args: {key: Scalars['String'], value: Scalars['String'], applicationId?: (Scalars['UUID'] | null)} }
+    updateMyApplicationVariable?: { __args: {applicationUniversalIdentifier: Scalars['String'], key: Scalars['String'], value: Scalars['String']} }
     createOneObject?: (ObjectGenqlSelection & { __args: {input: CreateOneObjectInput} })
     deleteOneObject?: (ObjectGenqlSelection & { __args: {input: DeleteOneObjectInput} })
     updateOneObject?: (ObjectGenqlSelection & { __args: {input: UpdateOneObjectInput} })
@@ -9066,6 +9114,22 @@ export interface CreateRecordExportInput {objectMetadataId: Scalars['UUID'],fiel
     export const isLogicFunctionExecutionResult = (obj?: { __typename?: any } | null): obj is LogicFunctionExecutionResult => {
       if (!obj?.__typename) throw new Error('__typename is missing in "isLogicFunctionExecutionResult"')
       return LogicFunctionExecutionResult_possibleTypes.includes(obj.__typename)
+    }
+    
+
+
+    const ApplicationVariableUserValue_possibleTypes: string[] = ['ApplicationVariableUserValue']
+    export const isApplicationVariableUserValue = (obj?: { __typename?: any } | null): obj is ApplicationVariableUserValue => {
+      if (!obj?.__typename) throw new Error('__typename is missing in "isApplicationVariableUserValue"')
+      return ApplicationVariableUserValue_possibleTypes.includes(obj.__typename)
+    }
+    
+
+
+    const WorkspaceMemberApplicationVariables_possibleTypes: string[] = ['WorkspaceMemberApplicationVariables']
+    export const isWorkspaceMemberApplicationVariables = (obj?: { __typename?: any } | null): obj is WorkspaceMemberApplicationVariables => {
+      if (!obj?.__typename) throw new Error('__typename is missing in "isWorkspaceMemberApplicationVariables"')
+      return WorkspaceMemberApplicationVariables_possibleTypes.includes(obj.__typename)
     }
     
 
