@@ -17,13 +17,13 @@ import { type FlatApiKey } from 'src/engine/core-modules/api-key/types/flat-api-
 import { ApplicationLookupService } from 'src/engine/core-modules/application/application-lookup/application-lookup.service';
 import { type FlatApplication } from 'src/engine/core-modules/application/types/flat-application.type';
 import { workspaceAuthContextStorage } from 'src/engine/core-modules/auth/storage/workspace-auth-context.storage';
-import { type WorkspaceAuthContext } from 'src/engine/core-modules/auth/types/workspace-auth-context.type';
 import { buildApiKeyAuthContext } from 'src/engine/core-modules/auth/utils/build-api-key-auth-context.util';
 import { type FlatWorkspace } from 'src/engine/core-modules/workspace/types/flat-workspace.type';
 import { AgentActorContextService } from 'src/engine/metadata-modules/ai/ai-agent-execution/services/agent-actor-context.service';
 import { AgentAsyncExecutorService } from 'src/engine/metadata-modules/ai/ai-agent-execution/services/agent-async-executor.service';
 import { AgentRunConversationService } from 'src/engine/metadata-modules/ai/ai-agent-execution/services/agent-run-conversation.service';
 import { type AgentExecutionResult } from 'src/engine/metadata-modules/ai/ai-agent-execution/types/agent-execution-result.type';
+import { type AgentRunCallerContext } from 'src/engine/metadata-modules/ai/ai-agent-execution/types/agent-run-caller-context.type';
 import { type RunAsWorkspaceMemberContext } from 'src/engine/metadata-modules/ai/ai-agent-execution/types/run-as-workspace-member-context.type';
 import { addAdditionalInstructionsToLastRunAgentMessage } from 'src/engine/metadata-modules/ai/ai-agent-execution/utils/add-additional-instructions-to-last-run-agent-message.util';
 import { buildAgentRunThreadId } from 'src/engine/metadata-modules/ai/ai-agent-execution/utils/build-agent-run-thread-id.util';
@@ -140,7 +140,7 @@ export class AgentRunService {
       application,
     });
 
-    const { authContext, actorContext } =
+    const { authContext, actorContext, callerRoleId }: AgentRunCallerContext =
       runAsContext ??
       (await this.resolveCallerContext({
         workspace,
@@ -228,6 +228,9 @@ export class AgentRunService {
               runAsContext?.authContext.userWorkspaceId ??
               requestUserWorkspaceId,
             runAsRoleId: runAsContext?.roleId,
+            additionalRoleRestrictionIds: isDefined(callerRoleId)
+              ? [callerRoleId]
+              : undefined,
             toolLoadingStrategy: 'lazy',
           }),
         );
@@ -407,19 +410,16 @@ export class AgentRunService {
     callerApiKey?: FlatApiKey;
     requestUserWorkspaceId: string | null;
     requestWorkspaceMemberId: string | null;
-  }): Promise<{
-    authContext: WorkspaceAuthContext;
-    actorContext?: ActorMetadata;
-  }> {
+  }): Promise<AgentRunCallerContext> {
     if (isDefined(requestWorkspaceMemberId)) {
-      const { authContext, actorContext } =
+      const { authContext, actorContext, roleId } =
         await this.agentActorContextService.buildRunAsWorkspaceMemberContext({
           workspaceMemberId: requestWorkspaceMemberId,
           workspaceId: workspace.id,
           viaApplication: application,
         });
 
-      return { authContext, actorContext };
+      return { authContext, actorContext, callerRoleId: roleId };
     }
 
     if (isDefined(callerApplication) && !isDefined(requestUserWorkspaceId)) {
