@@ -60,6 +60,17 @@ const goBackFromSidePanel = jest.fn(() =>
     navigationStack.slice(0, -1),
   ),
 );
+const getNavigationStackPageIds = () =>
+  jotaiStore
+    .get(sidePanelNavigationStackState.atom)
+    .map((navigationStackItem) => navigationStackItem.pageId);
+const removePageFromSidePanelHistory = jest.fn((pageId: string) =>
+  jotaiStore.set(sidePanelNavigationStackState.atom, (navigationStack) =>
+    navigationStack.filter(
+      (navigationStackItem) => navigationStackItem.pageId !== pageId,
+    ),
+  ),
+);
 
 jest.mock('@/object-metadata/hooks/useObjectMetadataItemById', () => ({
   useObjectMetadataItemById: () => ({ objectMetadataItem: COMPANY_OBJECT }),
@@ -80,7 +91,10 @@ jest.mock('@/page-layout/hooks/useUpdatePageLayoutWidgetsIsActive', () => ({
 }));
 
 jest.mock('@/side-panel/hooks/useSidePanelHistory', () => ({
-  useSidePanelHistory: () => ({ goBackFromSidePanel }),
+  useSidePanelHistory: () => ({
+    goBackFromSidePanel,
+    removePageFromSidePanelHistory,
+  }),
 }));
 
 const buildFormFieldWidget = (
@@ -211,7 +225,7 @@ describe('SidePanelRecordCreationFormSettingsPage', () => {
       { widgetId: 'widget-field-domain', isActive: false },
       { widgetId: 'widget-field-nickname', isActive: true },
     ]);
-    expect(goBackFromSidePanel).toHaveBeenCalled();
+    expect(getNavigationStackPageIds()).toEqual([CREATION_FORM_PAGE_ID]);
   });
 
   it('discards the changes on cancel', async () => {
@@ -247,11 +261,7 @@ describe('SidePanelRecordCreationFormSettingsPage', () => {
     });
 
     expect(goBackFromSidePanel).toHaveBeenCalledTimes(1);
-    expect(
-      jotaiStore
-        .get(sidePanelNavigationStackState.atom)
-        .map((navigationStackItem) => navigationStackItem.pageId),
-    ).toEqual([CREATION_FORM_PAGE_ID]);
+    expect(getNavigationStackPageIds()).toEqual([CREATION_FORM_PAGE_ID]);
   });
 
   it('stays on the page when saving fails', async () => {
@@ -264,7 +274,10 @@ describe('SidePanelRecordCreationFormSettingsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Hide Domain' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(goBackFromSidePanel).not.toHaveBeenCalled();
+    expect(getNavigationStackPageIds()).toEqual([
+      CREATION_FORM_PAGE_ID,
+      PAGE_ID,
+    ]);
     expect(
       screen.getByRole('button', { name: 'Show Domain' }),
     ).toBeInTheDocument();

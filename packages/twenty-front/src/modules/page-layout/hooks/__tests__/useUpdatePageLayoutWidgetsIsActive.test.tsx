@@ -59,7 +59,11 @@ describe('useUpdatePageLayoutWidgetsIsActive', () => {
     jest.clearAllMocks();
     store = createStore();
     store.set(metadataStoreState.atomFamily('pageLayoutWidgets'), {
-      current: [buildWidget('widget-a', true), buildWidget('widget-b', false)],
+      current: [
+        buildWidget('widget-a', true),
+        buildWidget('widget-b', false),
+        buildWidget('widget-c', false),
+      ],
       draft: [],
       status: 'up-to-date',
     });
@@ -98,17 +102,32 @@ describe('useUpdatePageLayoutWidgetsIsActive', () => {
     expect(getStoredWidgets(store)).toEqual([
       buildWidget('widget-a', false),
       buildWidget('widget-b', true),
+      buildWidget('widget-c', false),
     ]);
   });
 
-  it('stops at the first refused change and reports it', async () => {
+  it('keeps the changes saved before a refusal and stops there', async () => {
     const { result } = renderUpdateHook(store, [
       {
         request: {
           query: UPDATE_PAGE_LAYOUT_WIDGET_IS_ACTIVE,
           variables: { id: 'widget-a', isActive: false },
         },
+        result: updatePageLayoutWidgetIsActiveResult,
+      },
+      {
+        request: {
+          query: UPDATE_PAGE_LAYOUT_WIDGET_IS_ACTIVE,
+          variables: { id: 'widget-b', isActive: true },
+        },
         result: { errors: [new GraphQLError('Forbidden')] },
+      },
+      {
+        request: {
+          query: UPDATE_PAGE_LAYOUT_WIDGET_IS_ACTIVE,
+          variables: { id: 'widget-c', isActive: true },
+        },
+        result: updatePageLayoutWidgetIsActiveResult,
       },
     ]);
 
@@ -118,14 +137,21 @@ describe('useUpdatePageLayoutWidgetsIsActive', () => {
       outcome = await result.current.updatePageLayoutWidgetsIsActive([
         { widgetId: 'widget-a', isActive: false },
         { widgetId: 'widget-b', isActive: true },
+        { widgetId: 'widget-c', isActive: true },
       ]);
     });
 
     expect(outcome).toEqual({ status: 'failed' });
-    expect(handleMetadataError).toHaveBeenCalled();
+    expect(handleMetadataError).toHaveBeenCalledTimes(1);
+    expect(
+      updatePageLayoutWidgetIsActiveResult.mock.calls.map(
+        ([variables]) => variables,
+      ),
+    ).toEqual([{ id: 'widget-a', isActive: false }]);
     expect(getStoredWidgets(store)).toEqual([
-      buildWidget('widget-a', true),
+      buildWidget('widget-a', false),
       buildWidget('widget-b', false),
+      buildWidget('widget-c', false),
     ]);
   });
 });
