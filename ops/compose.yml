@@ -3,7 +3,7 @@ services:
     image: pirate-twenty:${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
     pull_policy: never
     build:
-      context: ..
+      context: .
       dockerfile: packages/twenty-docker/twenty/Dockerfile
       target: twenty
       args:
@@ -34,7 +34,7 @@ services:
       MESSAGE_QUEUE_TYPE: pg-boss
       STORAGE_TYPE: local
       DISABLE_DB_MIGRATIONS: 'true'
-      DISABLE_CRON_JOBS_REGISTRATION: 'false'
+      DISABLE_CRON_JOBS_REGISTRATION: ${TWENTY_DISABLE_CRON_JOBS_REGISTRATION:-false}
     healthcheck:
       test: ['CMD-SHELL', 'curl --fail http://localhost:3000/healthz || exit 1']
       interval: 5s
