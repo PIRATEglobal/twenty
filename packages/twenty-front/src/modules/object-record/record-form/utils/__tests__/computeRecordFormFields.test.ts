@@ -160,6 +160,44 @@ describe('computeRecordFormFields', () => {
     ]);
   });
 
+  it('should keep a single entry per field, preferring a visible widget', () => {
+    const result = computeRecordFormFields({
+      recordFormPageLayout: buildPageLayout([
+        {
+          position: 10,
+          widgets: [
+            {
+              ...buildFormFieldWidget({
+                fieldMetadataId: 'field-name',
+                index: 0,
+                isActive: false,
+              }),
+              id: 'hidden-name-widget',
+            },
+            buildFormFieldWidget({ fieldMetadataId: 'field-name', index: 1 }),
+            buildFormFieldWidget({ fieldMetadataId: 'field-code', index: 2 }),
+            {
+              ...buildFormFieldWidget({
+                fieldMetadataId: 'field-code',
+                index: 3,
+              }),
+              id: 'second-code-widget',
+            },
+          ],
+        },
+      ]),
+      fieldMetadataItems: [NAME_FIELD, CODE_FIELD],
+      restrictedFields: {},
+    });
+
+    expect(
+      result.map(({ widgetId, isVisible }) => [widgetId, isVisible]),
+    ).toEqual([
+      ['widget-field-name', true],
+      ['widget-field-code', true],
+    ]);
+  });
+
   it('should drop inactive tabs and non form field widgets', () => {
     const result = computeRecordFormFields({
       recordFormPageLayout: buildPageLayout([

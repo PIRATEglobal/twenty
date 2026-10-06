@@ -93,7 +93,7 @@ export const computeRecordFormFields = <
       .map((fieldMetadataItem) => [fieldMetadataItem.id, fieldMetadataItem]),
   );
 
-  return [...recordFormPageLayout.tabs]
+  const recordFormFields = [...recordFormPageLayout.tabs]
     .filter((pageLayoutTab) => pageLayoutTab.isActive)
     .sort((tabA, tabB) => tabA.position - tabB.position)
     .flatMap((pageLayoutTab) =>
@@ -122,4 +122,24 @@ export const computeRecordFormFields = <
           ]
         : [];
     });
+
+  const visibleFieldMetadataIds = new Set(
+    recordFormFields
+      .filter((recordFormField) => recordFormField.isVisible)
+      .map((recordFormField) => recordFormField.fieldMetadataItem.id),
+  );
+  const keptFieldMetadataIds = new Set<string>();
+
+  return recordFormFields.filter(({ fieldMetadataItem, isVisible }) => {
+    if (
+      keptFieldMetadataIds.has(fieldMetadataItem.id) ||
+      (!isVisible && visibleFieldMetadataIds.has(fieldMetadataItem.id))
+    ) {
+      return false;
+    }
+
+    keptFieldMetadataIds.add(fieldMetadataItem.id);
+
+    return true;
+  });
 };
