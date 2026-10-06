@@ -1,6 +1,13 @@
 services:
   twenty:
-    image: ghcr.io/pirateglobal/twenty:sha-${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
+    image: pirate-twenty:${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: packages/twenty-docker/twenty/Dockerfile
+      target: twenty
+      args:
+        APP_VERSION: 2.8.3
     restart: unless-stopped
     expose:
       - '3000'
@@ -39,7 +46,8 @@ services:
     mem_reservation: 896M
     cpus: '0.400'
   worker:
-    image: ghcr.io/pirateglobal/twenty:sha-${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
+    image: pirate-twenty:${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
+    pull_policy: never
     restart: unless-stopped
     command: ['node', 'dist/queue-worker/queue-worker']
     volumes:

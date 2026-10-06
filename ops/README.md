@@ -4,17 +4,19 @@ Production follows the `production` branch of `PIRATEglobal/twenty`, initially
 based on upstream `v2.8.3`. Keep `main` available for upstream updates; merge
 customizations into `production` when they are ready to deploy.
 
-The `PIRATE production` GitHub Actions workflow builds the upstream `twenty`
-Docker target and publishes `ghcr.io/pirateglobal/twenty:sha-<commit>`.
-Only after a successful build does it request a Coolify deployment and wait
-for completion. Coolify reads `ops/compose.yml` from the fork and pulls the
-image matching `SOURCE_COMMIT`. Builds run on GitHub rather than the CRM host.
+Coolify clones the fork, reads `ops/compose.yml`, and runs `sh ops/build.sh` as
+its custom Docker Compose build command. The upstream `twenty` Docker target
+builds the frontend and backend into `pirate-twenty:<commit>`; both the web
+server and worker use that same local image. `SOURCE_COMMIT` is supplied by
+Coolify, with its include-source-commit-in-build setting enabled.
 
-Coolify holds the runtime secrets. GitHub holds only its deployment API token
-in `COOLIFY_TOKEN`, with `read` and `deploy` abilities. Repository variables
-`COOLIFY_URL`, `COOLIFY_APPLICATION_UUID`, and `COOLIFY_DEPLOY_ENABLED` configure
-the deployment. Direct Git push webhooks must remain disabled so deployments
-wait for the image build.
+The BuildKit builder uses one build step at a time and is limited to 3 GiB RAM,
+6 GiB total RAM/swap, and 1.5 CPUs. Its persistent cache speeds subsequent
+builds. Build completion precedes replacing the running application.
+
+Coolify holds runtime secrets, which are excluded from the build environment.
+GitHub Actions is disabled on this fork. Deployment is managed entirely by
+Coolify, through its Deploy button or its GitHub push integration.
 
 The existing Coolify service `jgrm1k1qwpl6my1kat59f8ot` owns PostgreSQL and
 Redis, including the existing scheduled database backups. The Git application
