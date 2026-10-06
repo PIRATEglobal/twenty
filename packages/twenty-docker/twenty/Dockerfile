@@ -80,7 +80,7 @@ RUN if [ -d /app/packages/twenty-front/build ]; then \
       echo "Using pre-built frontend from host"; \
     else \
       cd /app/packages/twenty-front && \
-      NODE_ENV=production NODE_OPTIONS="--max-old-space-size=4096" GOMAXPROCS=2 RAYON_NUM_THREADS=2 UV_THREADPOOL_SIZE=2 npx vite build; \
+      NODE_ENV=production NODE_OPTIONS="--max-old-space-size=8192" GOMAXPROCS=2 RAYON_NUM_THREADS=2 UV_THREADPOOL_SIZE=2 npx vite build; \
     fi
 
 
