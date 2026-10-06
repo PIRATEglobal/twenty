@@ -4,9 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ApplicationEntity } from 'src/engine/core-modules/application/application.entity';
 import { ApplicationLookupModule } from 'src/engine/core-modules/application/application-lookup/application-lookup.module';
 import { ApplicationRegistrationLookupModule } from 'src/engine/core-modules/application/application-registration/application-registration-lookup/application-registration-lookup.module';
-import { ApplicationVariableUserValueEntity } from 'src/engine/core-modules/application/application-variable/application-variable-user-value.entity';
-import { ApplicationVariableUserValueResolver } from 'src/engine/core-modules/application/application-variable/application-variable-user-value.resolver';
-import { ApplicationVariableUserValueService } from 'src/engine/core-modules/application/application-variable/application-variable-user-value.service';
+import { UserApplicationVariableValueEntity } from 'src/engine/core-modules/application/application-variable/user-application-variable-value.entity';
+import { UserApplicationVariableValueResolver } from 'src/engine/core-modules/application/application-variable/user-application-variable-value.resolver';
+import { UserApplicationVariableValueService } from 'src/engine/core-modules/application/application-variable/user-application-variable-value.service';
 import { ApplicationVariableEntity } from 'src/engine/core-modules/application/application-variable/application-variable.entity';
 import { ApplicationVariableEntityResolver } from 'src/engine/core-modules/application/application-variable/application-variable.resolver';
 import { ApplicationVariableEntityService } from 'src/engine/core-modules/application/application-variable/application-variable.service';
@@ -22,7 +22,7 @@ import { WorkspaceCacheModule } from 'src/engine/workspace-cache/workspace-cache
   imports: [
     TypeOrmModule.forFeature([
       ApplicationVariableEntity,
-      ApplicationVariableUserValueEntity,
+      UserApplicationVariableValueEntity,
       ApplicationEntity,
       UserWorkspaceEntity,
     ]),
@@ -36,16 +36,16 @@ import { WorkspaceCacheModule } from 'src/engine/workspace-cache/workspace-cache
   ],
   providers: [
     provideWorkspaceScopedRepository(ApplicationVariableEntity),
-    provideWorkspaceScopedRepository(ApplicationVariableUserValueEntity),
+    provideWorkspaceScopedRepository(UserApplicationVariableValueEntity),
     provideWorkspaceScopedRepository(UserWorkspaceEntity),
     ApplicationVariableEntityService,
     ApplicationVariableEntityResolver,
-    ApplicationVariableUserValueService,
-    ApplicationVariableUserValueResolver,
+    UserApplicationVariableValueService,
+    UserApplicationVariableValueResolver,
   ],
   exports: [
     ApplicationVariableEntityService,
-    ApplicationVariableUserValueService,
+    UserApplicationVariableValueService,
   ],
 })
 export class ApplicationVariableEntityModule {}

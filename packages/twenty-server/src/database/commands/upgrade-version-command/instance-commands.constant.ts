@@ -227,7 +227,7 @@ import { DropAgentEvaluationInputsFastInstanceCommand } from 'src/database/comma
 import { AddTriggersToAgentFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-46/2-46-instance-command-fast-1791219100450-add-triggers-to-agent';
 import { AddScopeAndDefaultValueToApplicationVariablesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-46/2-46-instance-command-fast-1791274238040-add-scope-and-default-value-to-application-variables';
 import { CreatePendingWakeUpTableFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-46/2-46-instance-command-fast-1791299810581-create-pending-wake-up-table';
-import { AddApplicationVariableUserValueFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-46/2-46-instance-command-fast-1791302054677-add-application-variable-user-value';
+import { AddUserApplicationVariableValueFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-46/2-46-instance-command-fast-1791302054677-add-user-application-variable-value';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -457,5 +457,5 @@ export const INSTANCE_COMMANDS = [
   AddTriggersToAgentFastInstanceCommand,
   AddScopeAndDefaultValueToApplicationVariablesFastInstanceCommand,
   CreatePendingWakeUpTableFastInstanceCommand,
-  AddApplicationVariableUserValueFastInstanceCommand,
+  AddUserApplicationVariableValueFastInstanceCommand,
 ];
