@@ -1,0 +1,67 @@
+services:
+  twenty:
+    image: ghcr.io/pirateglobal/twenty:sha-${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
+    restart: unless-stopped
+    expose:
+      - '3000'
+    volumes:
+      - twenty-server-local-data:/app/packages/twenty-server/.local-storage
+    networks:
+      - twenty-data
+    environment: &runtime-environment
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      NODE_PORT: '3000'
+      PORT: '3000'
+      SERVER_URL: ${TWENTY_PUBLIC_URL:?Set TWENTY_PUBLIC_URL}
+      FRONT_BASE_URL: ${TWENTY_PUBLIC_URL:?Set TWENTY_PUBLIC_URL}
+      APP_SECRET: ${TWENTY_APP_SECRET:?Set TWENTY_APP_SECRET}
+      PG_DATABASE_URL: ${PG_DATABASE_URL:?Set PG_DATABASE_URL}
+      REDIS_URL: redis://redis-jgrm1k1qwpl6my1kat59f8ot:6379
+      TELEMETRY_ENABLED: 'false'
+      DEBUG_MODE: 'false'
+      EMAIL_DRIVER: logger
+      MESSAGING_PROVIDER_GMAIL_ENABLED: 'false'
+      CALENDAR_PROVIDER_GOOGLE_ENABLED: 'false'
+      AUTH_MICROSOFT_ENABLED: 'false'
+      MESSAGE_QUEUE_TYPE: pg-boss
+      STORAGE_TYPE: local
+      DISABLE_DB_MIGRATIONS: 'true'
+      DISABLE_CRON_JOBS_REGISTRATION: 'false'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl --fail http://localhost:3000/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    mem_limit: 1792M
+    memswap_limit: 1792M
+    mem_reservation: 896M
+    cpus: '0.400'
+  worker:
+    image: ghcr.io/pirateglobal/twenty:sha-${SOURCE_COMMIT:?Coolify must provide SOURCE_COMMIT}
+    restart: unless-stopped
+    command: ['node', 'dist/queue-worker/queue-worker']
+    volumes:
+      - twenty-server-local-data:/app/packages/twenty-server/.local-storage
+    networks:
+      - twenty-data
+    environment:
+      <<: *runtime-environment
+      DISABLE_DB_MIGRATIONS: 'true'
+      DISABLE_CRON_JOBS_REGISTRATION: 'true'
+    depends_on:
+      twenty:
+        condition: service_healthy
+    mem_limit: 1536M
+    memswap_limit: 1536M
+    mem_reservation: 1024M
+    cpus: '0.150'
+volumes:
+  twenty-server-local-data:
+    external: true
+    name: jgrm1k1qwpl6my1kat59f8ot_twenty-server-local-data
+networks:
+  twenty-data:
+    external: true
+    name: jgrm1k1qwpl6my1kat59f8ot
